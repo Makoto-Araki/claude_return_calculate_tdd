@@ -10,6 +10,13 @@ class AddRequest(BaseModel):
     b: PositiveInt
 
 
+class SubtractRequest(BaseModel):
+    """`POST /calculate/subtract` のリクエストボディ。"""
+
+    a: PositiveInt
+    b: PositiveInt
+
+
 class CalculationResponse(BaseModel):
     """四則演算エンドポイントの共通レスポンスボディ。"""
 
