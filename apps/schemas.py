@@ -24,6 +24,13 @@ class MultiplyRequest(BaseModel):
     b: PositiveInt
 
 
+class DivideRequest(BaseModel):
+    """`POST /calculate/divide` のリクエストボディ。"""
+
+    a: PositiveInt
+    b: PositiveInt
+
+
 class CalculationResponse(BaseModel):
     """四則演算エンドポイントの共通レスポンスボディ。"""
 
@@ -31,3 +38,12 @@ class CalculationResponse(BaseModel):
     a: int
     b: int
     result: int
+
+
+class DivideResponse(BaseModel):
+    """`POST /calculate/divide` のレスポンスボディ。"""
+
+    operation: str
+    a: int
+    b: int
+    result: float
