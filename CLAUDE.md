@@ -4,17 +4,23 @@
 
 ## プロジェクトの現状
 
-このリポジトリはまだ**コードが一切実装されていない状態**です(`apps/`・`tests/`・`Dockerfile`・`k8s/`・`.github/`はすべて未作成)。存在するのは `CLAUDE.md` とこのファイル自身が説明する `specs/` 配下のドキュメントのみです。
+四則演算のうち **`add`(加算)のみ実装済み** です。`subtract`・`multiply`・`divide`は未実装です。lint・型チェック・CI・ローカルKubernetesへのデプロイ環境は、`add`のみが動く状態を対象として整備済みです。
 
-`specs/`(add/subtract/multiply/divide/deployment/ci/lint)は、別リポジトリでSDD(仕様駆動開発)を行っていた際に作成した要件定義・設計ドキュメントをそのまま引き継いだものです。各 `tasks.md` のチェックボックスはすべて `[x]` になっていますが、これは**旧リポジトリでの完了状態であり、本リポジトリの実装状況を表していません**。本リポジトリでは要件・設計(`requirements.md`・`design.md`)はそのまま仕様源として使いますが、実装の進め方はSDDではなく**TDD(テスト駆動開発)**に切り替えます(詳細は[TDDでの実装の進め方](#tddでの実装の進め方)を参照)。
+`specs/`(add/subtract/multiply/divide/deployment/ci/lint)は、別リポジトリでSDD(仕様駆動開発)を行っていた際に作成した要件定義・設計ドキュメントをそのまま引き継いだものです。各 `tasks.md` のチェックボックスはすべて `[x]` になっていますが、これは**旧リポジトリでの完了状態の引き継ぎ**です(`add`・lint・deployment・CIについては本リポジトリでも実際に完了済みですが、`subtract`・`multiply`・`divide`は未実装であり、チェック状態を実装済みの根拠にしないこと)。本リポジトリでは要件・設計(`requirements.md`・`design.md`)はそのまま仕様源として使いますが、実装の進め方はSDDではなく**TDD(テスト駆動開発)**で行います(詳細は[TDDでの実装の進め方](#tddでの実装の進め方)を参照)。
+
+実装済み:
+- `apps/`(`schemas.py`・`main.py`・`routers/add.py`)、`pyproject.toml`(uv管理の依存定義、ruff・mypy設定を含む)
+- `tests/unit/test_add.py`(pytestユニットテスト。テストを先に実装しRed確認後に`apps/`を実装してGreenにした)
+- `Dockerfile`・`k8s/`(`namespace.yaml`・`deployment.yaml`)。ローカルのDocker Desktop Kubernetes上に実際にデプロイし、`POST /calculate/add`の応答(正常系`200`・異常系`422`)を確認済み
+- CI(`.github/workflows/ci-pull-request.yml`・`ci-main.yml`)。GitHub Actions上で`test`・`docker-build`両ジョブの成功を確認済み
 
 未実装:
-- `apps/`(FastAPIアプリ本体)、`pyproject.toml`(uv管理の依存定義)
-- `tests/unit/test_add.py`・`tests/unit/test_subtract.py`・`tests/unit/test_multiply.py`・`tests/unit/test_divide.py`(pytestユニットテスト)
-- `Dockerfile`、`k8s/`
-- `.github/workflows/`(CI。`specs/ci/`に設計済みだが未導入)
+- `apps/routers/subtract.py`・`multiply.py`・`divide.py`
+- `tests/unit/test_subtract.py`・`test_multiply.py`・`test_divide.py`
 
-主なコマンド(実装後に[uv](https://docs.astral.sh/uv/)で使用する想定):
+演算を追加した際は、`Dockerfile`・`k8s/`マニフェストは変更不要だが、イメージの再ビルド・再デプロイと全演算での動作再確認が必要。
+
+主なコマンド([uv](https://docs.astral.sh/uv/)を使用):
 
 ```bash
 uv sync                                    # 依存関係のインストール
@@ -27,7 +33,7 @@ uv run mypy apps/                          # 型チェック(appsディレクト
 
 ## プロジェクトの目的
 
-2個の**正の整数**パラメータに対して四則演算(加算・減算・乗算・除算)を行うシンプルなAPIサーバー。想定している技術スタック(design.mdに記載済みだが、まだ実装はされていない)は Python 3.12+、FastAPI、バリデーション用のPydantic v2、テスト用のpytest + httpx。
+2個の**正の整数**パラメータに対して四則演算(加算・減算・乗算・除算)を行うシンプルなAPIサーバー。技術スタックは Python 3.12+、FastAPI、バリデーション用のPydantic v2、テスト用のpytest + httpx。
 
 ## specs/ の構成と使い方
 
@@ -67,15 +73,15 @@ specs/
 
 ## 実行環境(Kubernetes)に関する設計判断
 
-詳細は [`specs/deployment/`](specs/deployment/) を参照。
+詳細は [`specs/deployment/`](specs/deployment/) を参照。**導入済み**(`add`のみの状態でローカルデプロイ・動作確認済み)。
 
-- ローカルPCのDocker Desktopで有効化したKubernetes上に、専用Namespace `calculator-api` 配下で `Deployment`リソースとしてデプロイする想定(本番運用は想定しない)。`default` Namespaceは使用しない。
+- ローカルPCのDocker Desktopで有効化したKubernetes上に、専用Namespace `calculator-api` 配下で `Deployment`リソースとしてデプロイする(本番運用は想定しない)。`default` Namespaceは使用しない。
 - リソース節約を最優先するため、レプリカ数は `1`、`livenessProbe`/`readinessProbe`は設定しない、CPU/メモリの`requests`/`limits`は最小限、という最小構成を維持すること。
 - `Service`/`Ingress`・オートスケーリングなどはスコープ外。追加する場合は要件から見直すこと。
 
 ## CI(GitHub Actions)に関する設計判断
 
-詳細は [`specs/ci/`](specs/ci/) を参照。現時点では `.github/workflows/` は未作成で、CIは**未導入**(以下は導入時に従うべき設計方針)。
+詳細は [`specs/ci/`](specs/ci/) を参照。**導入済み**(GitHub Actions上でtest・docker-build両ジョブの成功を確認済み)。
 
 - `.github/workflows/ci-pull-request.yml`: `main`向けPRの作成・更新時(`pull_request`トリガー)に実行。
 - `.github/workflows/ci-main.yml`: `main`へのpush(マージ)時(`push`トリガー)に実行。
