@@ -17,6 +17,13 @@ class SubtractRequest(BaseModel):
     b: PositiveInt
 
 
+class MultiplyRequest(BaseModel):
+    """`POST /calculate/multiply` のリクエストボディ。"""
+
+    a: PositiveInt
+    b: PositiveInt
+
+
 class CalculationResponse(BaseModel):
     """四則演算エンドポイントの共通レスポンスボディ。"""
 
