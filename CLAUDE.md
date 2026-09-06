@@ -4,13 +4,17 @@
 
 ## プロジェクトの現状
 
-加算 (`add`)・減算 (`subtract`)・乗算 (`multiply`)・除算 (`divide`) の四則演算エンドポイントはすべて実装済みです。デプロイ関連(Dockerfile、Kubernetesマニフェスト)は、要件・設計の整理段階で作成した `specs/deployment/` ディレクトリのみが存在し、まだ**仕様のみ**の状態です。
+このリポジトリはまだ**コードが一切実装されていない状態**です(`apps/`・`tests/`・`Dockerfile`・`k8s/`・`.github/`はすべて未作成)。存在するのは `CLAUDE.md` とこのファイル自身が説明する `specs/` 配下のドキュメントのみです。
 
-- 実装済み: `apps/`(FastAPIアプリ本体)、`pyproject.toml`(uv管理の依存定義)、`tests/unit/test_add.py`・`tests/unit/test_subtract.py`・`tests/unit/test_multiply.py`・`tests/unit/test_divide.py`(pytestユニットテスト)
-- 未実装: `Dockerfile`、`k8s/`
-- CI(GitHub Actions)は導入済みです。詳細は[実行環境(Kubernetes)に関する設計判断](#実行環境kubernetesに関する設計判断)の後の[CI(GitHub Actions)に関する設計判断](#cigithub-actionsに関する設計判断)を参照してください。
+`specs/`(add/subtract/multiply/divide/deployment/ci/lint)は、別リポジトリでSDD(仕様駆動開発)を行っていた際に作成した要件定義・設計ドキュメントをそのまま引き継いだものです。各 `tasks.md` のチェックボックスはすべて `[x]` になっていますが、これは**旧リポジトリでの完了状態であり、本リポジトリの実装状況を表していません**。本リポジトリでは要件・設計(`requirements.md`・`design.md`)はそのまま仕様源として使いますが、実装の進め方はSDDではなく**TDD(テスト駆動開発)**に切り替えます(詳細は[TDDでの実装の進め方](#tddでの実装の進め方)を参照)。
 
-主なコマンド([uv](https://docs.astral.sh/uv/)を使用):
+未実装:
+- `apps/`(FastAPIアプリ本体)、`pyproject.toml`(uv管理の依存定義)
+- `tests/unit/test_add.py`・`tests/unit/test_subtract.py`・`tests/unit/test_multiply.py`・`tests/unit/test_divide.py`(pytestユニットテスト)
+- `Dockerfile`、`k8s/`
+- `.github/workflows/`(CI。`specs/ci/`に設計済みだが未導入)
+
+主なコマンド(実装後に[uv](https://docs.astral.sh/uv/)で使用する想定):
 
 ```bash
 uv sync                                    # 依存関係のインストール
@@ -25,7 +29,7 @@ uv run mypy apps/                          # 型チェック(appsディレクト
 
 2個の**正の整数**パラメータに対して四則演算(加算・減算・乗算・除算)を行うシンプルなAPIサーバー。想定している技術スタック(design.mdに記載済みだが、まだ実装はされていない)は Python 3.12+、FastAPI、バリデーション用のPydantic v2、テスト用のpytest + httpx。
 
-## スペック駆動のワークフロー
+## specs/ の構成と使い方
 
 各演算・機能は `specs/` 配下にそれぞれ独立したフィーチャーフォルダを持ち、requirements → design → tasks の3ファイル構成に従う。
 
@@ -44,7 +48,15 @@ specs/
     └── tasks.md           # Dockerfile作成〜デプロイ確認までのタスク
 ```
 
-機能を実装する際は、リクエスト/レスポンスの形式やエラー挙動の詳細をその機能の `design.md` から確認し、実装が完了した `tasks.md` の項目にはチェックを入れること。各タスクは親の `requirements.md` 内のどの要件を満たすものかが番号で紐づいている。新しい演算・機能を追加する場合も、同様に `specs/<feature>/` に同じ3ファイル構成を作成してこの形式を維持すること。
+`requirements.md`・`design.md` は本リポジトリでも仕様源としてそのまま使う(設計をやり直す必要はない)。ただし `tasks.md` のチェックボックスは前述の通り旧リポジトリでの完了状態の引き継ぎであり、本リポジトリでの実装状況とは無関係(未実装)なので、実装済みの印として扱わないこと。新しい演算・機能を追加する場合も、同様に `specs/<feature>/` に同じ3ファイル構成を作成してこの形式を維持すること。
+
+## TDDでの実装の進め方
+
+本リポジトリでは、SDD(仕様が先にあり後からテストを追認生成する進め方)ではなく、**TDD(テスト駆動開発)**で実装する。
+
+- 各演算(add/subtract/multiply/divide)を実装する際は、`specs/<operation>/tasks.md` に列挙されたテストケース一覧を先に `tests/unit/test_<operation>.py` に実装し(Red確認)、その後に `apps/` 側の実装を追加してテストを通す(Green)。
+- 進め方の単位は**演算ごとに1サイクル**(テスト作成→実装→lint/mypy確認→コミット→push→PR作成)とし、1つの演算のPRが完結してから次の演算に進む。4演算分のテストや実装をまとめて先に書く方式は採らない。
+- `specs/<operation>/tasks.md` の各項目(スキーマ定義→ハンドラ実装→テスト実装、という記載順)は要件の網羅リストとして参照し、実際の着手順序はテスト実装を先に行う。
 
 ## 4演算に共通する主要な設計判断
 
@@ -63,7 +75,7 @@ specs/
 
 ## CI(GitHub Actions)に関する設計判断
 
-詳細は [`specs/ci/`](specs/ci/) を参照。
+詳細は [`specs/ci/`](specs/ci/) を参照。現時点では `.github/workflows/` は未作成で、CIは**未導入**(以下は導入時に従うべき設計方針)。
 
 - `.github/workflows/ci-pull-request.yml`: `main`向けPRの作成・更新時(`pull_request`トリガー)に実行。
 - `.github/workflows/ci-main.yml`: `main`へのpush(マージ)時(`push`トリガー)に実行。
@@ -97,7 +109,7 @@ k8s/
 
 ## ユニットテストの方針
 
-各演算の実装には**必ずユニットテストコードを併せて出力する**こと。出力先は `tests/unit/` 配下とし、演算ごとに個別のテストファイル(`test_add.py` など)に分ける。テストケースは各 `specs/<operation>/tasks.md` に列挙された正常系・異常系の項目を網羅すること。テスト関数にも[Docstringの方針](#docstringの方針)に従いNumPyスタイルのdocstringを付与すること。
+[TDDでの実装の進め方](#tddでの実装の進め方)の通り、各演算の実装コードより**先に**ユニットテストコードを出力すること(テストが失敗する=Redであることを確認してから実装に進む)。出力先は `tests/unit/` 配下とし、演算ごとに個別のテストファイル(`test_add.py` など)に分ける。テストケースは各 `specs/<operation>/tasks.md` に列挙された正常系・異常系の項目を網羅すること。テスト関数にも[Docstringの方針](#docstringの方針)に従いNumPyスタイルのdocstringを付与すること。
 
 ## Docstringの方針
 
@@ -128,3 +140,5 @@ PRのタイトル・本文は日本語で記述すること。
 ## PR作成の粒度
 
 キリの良い作業単位(1機能・1ドキュメント更新など)が完了するたびに、こまめにコミット・push・PR作成を行うこと。複数の無関係な変更を1つの大きなPRにまとめて溜め込まないこと。このリポジトリはPRがマージされるとブランチが自動削除されるため、新たな作業を始める前には必ず `git fetch origin` して `main` を最新化し、そこから新しいブランチを切ること。
+
+四則演算の実装では、[TDDでの実装の進め方](#tddでの実装の進め方)に記載の「演算ごとに1サイクル」が最小のPR単位となる。1つの演算のテスト・実装・lint/mypy確認が完了しPRがマージされてから、次の演算のブランチを切ること。
