@@ -4,8 +4,7 @@
 
 ## 現在の実装状況
 
-- 実装済み: `add`(加算、`POST /calculate/add`)・`subtract`(減算、`POST /calculate/subtract`)・`multiply`(乗算、`POST /calculate/multiply`)
-- 未実装: `divide`(除算)
+- 実装済み: `add`(加算、`POST /calculate/add`)・`subtract`(減算、`POST /calculate/subtract`)・`multiply`(乗算、`POST /calculate/multiply`)・`divide`(除算、`POST /calculate/divide`)
 
 ## 技術スタック
 
@@ -41,7 +40,7 @@ uv run mypy apps/                          # 型チェック(appsディレクト
 | 加算 | `POST /calculate/add` | 実装済み |
 | 減算 | `POST /calculate/subtract` | 実装済み |
 | 乗算 | `POST /calculate/multiply` | 実装済み |
-| 除算 | `POST /calculate/divide` | 未実装 |
+| 除算 | `POST /calculate/divide` | 実装済み |
 
 リクエスト例(`add`):
 
