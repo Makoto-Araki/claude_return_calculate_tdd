@@ -4,17 +4,17 @@
 
 ## プロジェクトの現状
 
-四則演算の **`add`(加算)・`subtract`(減算)・`multiply`(乗算)・`divide`(除算)がすべて実装済み** です。lint・型チェック・CIは4演算すべてが動く状態を対象として整備済みです。ローカルKubernetesへのデプロイ環境は`add`のみの状態で構築・動作確認したものであり、`subtract`・`multiply`・`divide`追加後のイメージ再ビルド・再デプロイでの動作再確認はまだ行っていません。
+四則演算の **`add`(加算)・`subtract`(減算)・`multiply`(乗算)・`divide`(除算)がすべて実装済み** です。lint・型チェック・CIは4演算すべてが動く状態を対象として整備済みです。ローカルKubernetesへのデプロイ環境は、4演算すべてが揃った状態でイメージを再ビルド・再デプロイし、`POST /calculate/<operation>`の応答(正常系`200`・異常系`422`)を4演算すべてで確認済みです。
 
 `specs/`(add/subtract/multiply/divide/deployment/ci/lint)は、別リポジトリでSDD(仕様駆動開発)を行っていた際に作成した要件定義・設計ドキュメントをそのまま引き継いだものです。各 `tasks.md` のチェックボックスはすべて `[x]` になっていますが、これは**旧リポジトリでの完了状態の引き継ぎ**です(`add`・`subtract`・`multiply`・`divide`・lint・CIについては本リポジトリでも実際に完了済みです)。本リポジトリでは要件・設計(`requirements.md`・`design.md`)はそのまま仕様源として使いますが、実装の進め方はSDDではなく**TDD(テスト駆動開発)**で行います(詳細は[TDDでの実装の進め方](#tddでの実装の進め方)を参照)。
 
 実装済み:
 - `apps/`(`schemas.py`・`main.py`・`routers/add.py`・`routers/subtract.py`・`routers/multiply.py`・`routers/divide.py`)、`pyproject.toml`(uv管理の依存定義、ruff・mypy設定を含む)
 - `tests/unit/test_add.py`・`test_subtract.py`・`test_multiply.py`・`test_divide.py`(pytestユニットテスト。いずれもテストを先に実装しRed確認後に`apps/`を実装してGreenにした)
-- `Dockerfile`・`k8s/`(`namespace.yaml`・`deployment.yaml`)。`add`のみの状態でローカルのDocker Desktop Kubernetes上に実際にデプロイし、`POST /calculate/add`の応答(正常系`200`・異常系`422`)を確認済み
+- `Dockerfile`・`k8s/`(`namespace.yaml`・`deployment.yaml`)。4演算すべてが揃った状態でローカルのDocker Desktop Kubernetes上にイメージ再ビルド・再デプロイし、4演算すべての応答(正常系`200`・異常系`422`)を確認済み
 - CI(`.github/workflows/ci-pull-request.yml`・`ci-main.yml`)。GitHub Actions上で`test`・`docker-build`両ジョブの成功を確認済み
 
-演算を追加した際は、`Dockerfile`・`k8s/`マニフェストは変更不要だが、イメージの再ビルド・再デプロイと全演算での動作再確認が必要(`subtract`・`multiply`・`divide`追加後のこの再確認はまだ未実施)。
+演算を追加した際は、`Dockerfile`・`k8s/`マニフェストは変更不要だが、イメージの再ビルド・再デプロイと全演算での動作再確認が必要。
 
 主なコマンド([uv](https://docs.astral.sh/uv/)を使用):
 
